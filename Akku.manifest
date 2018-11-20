@@ -1,0 +1,9 @@
+#!r6rs ; -*- mode: scheme; coding: utf-8 -*-
+(import (akku format manifest))
+
+(akku-package ("zk" "0.0.0-alpha.0")
+  (synopsis "I did not edit Akku.manifest")
+  (authors "K. Programistova <schemer@example.com>")
+  (license "NOASSERTION")
+  (depends ("pfds" "^0.3.0") ("thunderchez" "^0.0.0-akku.119.154bb66"))
+)
