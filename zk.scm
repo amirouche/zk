@@ -7,7 +7,7 @@
 
 
 (tb-init)
-(tb-change-cell 1 1 #\a #x01 #x02)
+(tb-change-cell 1 1 #\a #x00 #xff)
 (tb-present)
 (sleep (make-time 'time-duration 0 3))
 (tb-shutdown)
