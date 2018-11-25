@@ -1,24 +1,30 @@
 (library (zk buffer)
-  (export fingertree-split3*
-          fingertree-ref
-          fingertree-split*
-          fingertree-take
-          fingertree-drop
-          string->buffer
-          buffer->string
-          buffer-line-count
-          buffer-line-length
-          buffer-take-lines
-          buffer-drop-lines
-          buffer-char-insert
-          buffer-char-delete
-          buffer-char-for-each
-          buffer-merge-lines-at
-          buffer-split-line-at
-          buffer-newline-at)
-  (import (rnrs)
-          (srfi s1 lists)
-          (zk fingertrees))
+  (export
+   fingertree-split3*
+   fingertree-ref
+   fingertree-split*
+   fingertree-take
+   fingertree-drop
+   string->buffer
+   buffer->string
+   buffer-line-count
+   buffer-line-length
+   buffer-take-lines
+   buffer-drop-lines
+   buffer-char-insert
+   buffer-char-delete
+   buffer-char-for-each
+   buffer-merge-lines-at
+   buffer-split-line-at
+   buffer-newline-at
+   %newline
+   string-split
+   )
+  (import
+   (rnrs)
+   (only (srfi s13 strings) string-join)
+   (zk fingertrees)
+   )
 
   ;; fingertree procedure specific for the indexed list
 
@@ -49,6 +55,25 @@
 
   (define (make-line line)
     (make-index-list (map char->integer (string->list line))))
+
+
+  (define (compose . procs)
+    (lambda (arg)
+      (let loop ((procs (reverse procs))
+                 (arg arg))
+        (if (null? procs)
+            arg
+            (loop (cdr procs)
+                  ((car procs) arg))))))
+
+  (define (string-split string char)
+    (let loop ((in (string->list string))
+               (out '(())))
+      (if (null? in)
+          (map (compose list->string reverse) (reverse out))
+      (if (char=? (car in) char)
+          (loop (cdr in) (cons '() out))
+          (loop (cdr in) (cons (cons (car in) (car out)) (cdr out)))))))
 
   (define (string->buffer string)
     (make-index-list (map make-line (string-split string #\newline))))
@@ -90,11 +115,11 @@
     (fingertree-fold (lambda (fingertree line)
                        (let ((last (fingertree-fold (lambda (char column)
                                                       (proc column line char)
-                                                      (1+ column))
+                                                      (+ 1 column))
                                                     0
                                                     fingertree)))
                          (proc last line %newline)
-                         (1+ line)))
+                         (+ 1 line)))
                      0
                      buffer))
 

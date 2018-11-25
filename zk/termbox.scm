@@ -4,6 +4,120 @@
    tb-shutdown
    tb-change-cell
    tb-present
+   tb-clear
+   tb-height
+   tb-width
+   tb-set-cursor
+   tb-poll-event
+   TB-KEY-F1
+   TB-KEY-F2
+   TB-KEY-F3
+   TB-KEY-F4
+   TB-KEY-F5
+   TB-KEY-F6
+   TB-KEY-F7
+   TB-KEY-F8
+   TB-KEY-F9
+   TB-KEY-F10
+   TB-KEY-F11
+   TB-KEY-F12
+   TB-KEY-INSERT
+   TB-KEY-DELETE
+   TB-KEY-HOME
+   TB-KEY-END
+   TB-KEY-PGUP
+   TB-KEY-PGDN
+   TB-KEY-ARROW-UP
+   TB-KEY-ARROW-DOWN
+   TB-KEY-ARROW-LEFT
+   TB-KEY-ARROW-RIGHT
+   TB-KEY-MOUSE-LEFT
+   TB-KEY-MOUSE-RIGHT
+   TB-KEY-MOUSE-MIDDLE
+   TB-KEY-MOUSE-RELEASE
+   TB-KEY-MOUSE-WHEEL-UP
+   TB-KEY-MOUSE-WHEEL-DOWN
+
+   TB-KEY-CTRL-TILDE
+   TB-KEY-CTRL-2
+   TB-KEY-CTRL-A
+   TB-KEY-CTRL-B
+   TB-KEY-CTRL-C
+   TB-KEY-CTRL-D
+   TB-KEY-CTRL-E
+   TB-KEY-CTRL-F
+   TB-KEY-CTRL-G
+   TB-KEY-BACKSPACE
+   TB-KEY-CTRL-H
+   TB-KEY-TAB
+   TB-KEY-CTRL-I
+   TB-KEY-CTRL-J
+   TB-KEY-CTRL-K
+   TB-KEY-CTRL-L
+   TB-KEY-ENTER
+   TB-KEY-CTRL-M
+   TB-KEY-CTRL-N
+   TB-KEY-CTRL-O
+   TB-KEY-CTRL-P
+   TB-KEY-CTRL-Q
+   TB-KEY-CTRL-R
+   TB-KEY-CTRL-S
+   TB-KEY-CTRL-T
+   TB-KEY-CTRL-U
+   TB-KEY-CTRL-V
+   TB-KEY-CTRL-W
+   TB-KEY-CTRL-X
+   TB-KEY-CTRL-Y
+   TB-KEY-CTRL-Z
+   TB-KEY-ESC
+   TB-KEY-CTRL-LSQ-BRACKET
+   TB-KEY-CTRL-3
+   TB-KEY-CTRL-4
+   TB-KEY-CTRL-BACKSLASH
+   TB-KEY-CTRL-5
+   TB-KEY-CTRL-RSQ-BRACKET
+   TB-KEY-CTRL-6
+   TB-KEY-CTRL-7
+   TB-KEY-CTRL-SLASH
+   TB-KEY-CTRL-UNDERSCORE
+   TB-KEY-SPACE
+   TB-KEY-BACKSPACE2
+   TB-KEY-CTRL-8
+
+   TB-MOD-ALT
+   TB-MOD-MOTION
+
+   TB-DEFAULT
+   TB-BLACK
+   TB-RED
+   TB-GREEN
+   TB-YELLOW
+   TB-BLUE
+   TB-MAGENTA
+   TB-CYAN
+   TB-WHITE
+
+   TB-BOLD
+   TB-UNDERLINE
+   TB-REVERSE
+
+   TB-EVENT-KEY
+   TB-EVENT-RESIZE
+   TB-EVENT-MOUSE
+
+   TB-EUNSUPPORTED-TERMINAL
+   TB-EFAILED-TO-OPEN-TTY
+   TB-EPIPE-TRAP-ERROR
+
+   TB-DEFAULT
+   TB-BLACK
+   TB-RED
+   TB-GREEN
+   TB-YELLOW
+   TB-BLUE
+   TB-MAGENTA
+   TB-CYAN
+   TB-WHITE
    )
   (import
    (except (chezscheme) define-record-type)
@@ -134,10 +248,10 @@
     ((foreign-procedure* integer-64 "tb_width")))
 
   (define (tb-height)
-    ((foreign-procedure* void "tb_height")))
+    ((foreign-procedure* integer-64 "tb_height")))
 
   (define (tb-clear)
-    ((foreign-procedure* void "tb_clear")))
+    ((foreign-procedure* integer-64 "tb_clear")))
 
   (define (tb-set-clear-attributes fg bg)
     ((foreign-procedure* void "tb_set_clear_attributes" unsigned-32 unsigned-32) fg bg))
@@ -159,7 +273,7 @@
 				    unsigned-32
 				    unsigned-32
 				    unsigned-32)))
-      (proc x y (char->integer ch) fg bg)))
+      (proc x y ch fg bg)))
 
   (define TB-OUTPUT-CURRENT 0)
   (define TB-OUTPUT-NORMAL 1)
@@ -218,20 +332,23 @@
 			       (ftype-ref tb-event (key) event))
 	       (make-event-char (integer->char (ftype-ref tb-event (ch) event)))))
       ((2) (make-event-resize (ftype-ref tb-event (w) event)
-				 (ftype-ref tb-event (h) event)))
+                              (ftype-ref tb-event (h) event)))
       ((3) (make-event-mouse (ftype-ref tb-event (mod) event)
 			     (ftype-ref tb-event (key) event)
 			     (ftype-ref tb-event (x) event)
 			     (ftype-ref tb-event (y) event)))))
 
+  (define (make-tb-event)
+    (make-ftype-pointer tb-event (foreign-alloc (ftype-sizeof tb-event))))
+
   (define (tb-peek-event timeout)
     (let ((proc (foreign-procedure* void "tb_peek_event" void* integer-64)))
-      (let ((event (make-ftype-pointer tb-event (foreign-alloc (ftype-sizeof tb-event)))))
-	(%make-event (proc event timeout) event))))
+      (let ((event (make-tb-event)))
+	(%make-event (proc (ftype-pointer-address event) timeout) event))))
 
   (define (tb-poll-event)
-    (let ((proc (foreign-procedure* void "tb_poll_event" void*)))
-      (let ((event (make-ftype-pointer tb-event (foreign-alloc (ftype-sizeof tb-event)))))
-	(%make-event (proc event) event))))
+    (let ((proc (foreign-procedure* integer-64 "tb_poll_event" void*)))
+      (let ((event (make-tb-event)))
+	(%make-event (proc (ftype-pointer-address event)) event))))
 
   )
