@@ -285,8 +285,8 @@
 
 (define (dispatch)
   (match (dg (tb-poll-event))
-    (($ <char> char)
-     (buffer-insert! char))
+    (($ <event-char> char)
+     (buffer-insert! (char->integer char)))
     (($ <event-key> mode key)
      (dg mode key)
      (cond
