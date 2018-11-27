@@ -9,6 +9,7 @@
    tb-width
    tb-set-cursor
    tb-poll-event
+
    TB-KEY-F1
    TB-KEY-F2
    TB-KEY-F3
