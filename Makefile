@@ -4,5 +4,7 @@ help: ## This help.
 dev: ## Setup dev environment, you still need Chez Scheme
 	git submodule update --init
 	cd upstream/termbox/ && ./waf configure && ./waf
-	@echo "\n  You can now run: scheme zk.scm"
+	akku install
+	@echo "\n  Now you can do: source .akku/bin/activate"
+	@echo "\n  Then run the editor with: scheme zk.scm"
 	@echo "\n  You can quit the editor by typing: Ctrl+Q\n"
