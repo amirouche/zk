@@ -1,0 +1,3 @@
+[submodule "upstream/termbox"]
+	path = upstream/termbox
+	url = https://github.com/amirouche/termbox-truecolor

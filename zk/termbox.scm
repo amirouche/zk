@@ -9,6 +9,7 @@
    tb-width
    tb-set-cursor
    tb-poll-event
+
    TB-KEY-F1
    TB-KEY-F2
    TB-KEY-F3
@@ -125,7 +126,9 @@
    (zk helpers))
 
   (define (init-termbox-library)
-    (load-shared-object "/usr/local/lib/libtermbox.so.1"))
+    ;; XXX: this loads the shared object relative to the root
+    ;; directory.
+    (load-shared-object "./upstream/termbox/build/src/libtermbox.so.1"))
 
   ;; ffi helpers
 
