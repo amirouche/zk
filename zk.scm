@@ -1,7 +1,8 @@
 (import (srfi s9 records))
 (import (matchable))
 
-(import (zk termbox))
+(import (zk termbox)
+	(zk key-names))
 (import (zk buffer))
 (import (zk helpers))
 
@@ -286,23 +287,70 @@
 (define key-table
   (make-eq-hashtable))
 
-(hashtable-set! key-table   TB-KEY-CTRL-Q	 (lambda () (quit)))
-(hashtable-set! key-table   TB-KEY-CTRL-S	 (lambda () (save!)))
-(hashtable-set! key-table   TB-KEY-CTRL-E	 (lambda () (cursor-end-of-line!)))
-(hashtable-set! key-table   TB-KEY-CTRL-A	 (lambda () (cursor-start-of-line!)))
-(hashtable-set! key-table   TB-KEY-CTRL-D	 (lambda () (buffer-delete!)))
-(hashtable-set! key-table   TB-KEY-DELETE	 (lambda () (buffer-delete!)))
-(hashtable-set! key-table   TB-KEY-ENTER	 (lambda () (buffer-newline!)))
-(hashtable-set! key-table   TB-KEY-SPACE	 (lambda () (buffer-insert! (char->integer #\space))))
-(hashtable-set! key-table   TB-KEY-BACKSPACE2	 (lambda () (buffer-backspace!)))
-(hashtable-set! key-table   TB-KEY-ARROW-UP	 (lambda () (cursor-up!)))
-(hashtable-set! key-table   TB-KEY-ARROW-DOWN	 (lambda () (cursor-down!)))
-(hashtable-set! key-table   TB-KEY-ARROW-LEFT	 (lambda () (cursor-left!)))
-(hashtable-set! key-table   TB-KEY-ARROW-RIGHT	 (lambda () (cursor-right!)))
-(hashtable-set! key-table   TB-KEY-CTRL-P	 (lambda () (cursor-up!)))
-(hashtable-set! key-table   TB-KEY-CTRL-N	 (lambda () (cursor-down!)))
-(hashtable-set! key-table   TB-KEY-CTRL-B	 (lambda () (cursor-left!)))
-(hashtable-set! key-table   TB-KEY-CTRL-F	 (lambda () (cursor-right!)))
+(define %bind-key #f)
+(define %list-keys #f)
+(define %match-key #f)
+(let ((key-table (make-eq-hashtable)))
+  (set! %bind-key
+    (lambda (key-seq proc)
+      (let lp ((ck (car key-seq))
+	      (rest-key (cdr key-seq))
+	      (kt key-table))
+       (if (pair? rest-key)
+	   (let ((cte (hashtable-ref kt ck void)))
+	     (begin (if (not (hashtable? cte))
+			(begin (set! cte (make-eq-hashtable))
+			       (hashtable-set! kt ck cte)))
+		    (lp (car rest-key) (cdr rest-key) cte)))
+	   (hashtable-set! kt ck proc)))))
+  (set! %list-keys
+    (case-lambda
+      [() (%list-keys key-table "")]
+      [(kt prefix)
+       (hash-table-for-each
+	kt
+	(lambda (k v)
+	  (display `(,prefix ,k ,v) %error)
+	  (newline %error)
+	  (if (hashtable? v)
+	      (%list-keys v (format #f "~a ~a" prefix k )))))]))
+  (set! %dispatch-key
+    (case-lambda
+      [(k) (%dispatch-key k key-table)]
+      [(k kt)
+       (if (eq? k TB-KEY-CTRL-G)
+	   void
+	   (let ((proc-or-hash (hashtable-ref kt k void)))
+	     (if (hashtable? proc-or-hash)
+		 (%dispatch-key (match (tb-poll-event)
+				       (($ <event-char> char) char)
+				       (($ <event-key> mode key) key)) proc-or-hash)
+		 proc-or-hash)))])))
+
+(define (bind-key key-seq proc)
+  (%bind-key (translate-key-seq key-seq) proc))
+
+
+(%bind-key `(,TB-KEY-DELETE)             buffer-delete!)
+(%bind-key `(,TB-KEY-ENTER)              buffer-newline!)
+(%bind-key `(,TB-KEY-SPACE)              (lambda () (buffer-insert! (char->integer #\space))))
+(%bind-key `(,TB-KEY-BACKSPACE2)	 buffer-backspace!)
+(%bind-key `(,TB-KEY-ARROW-UP)           cursor-up!)
+(%bind-key `(,TB-KEY-ARROW-DOWN)	 cursor-down!)
+(%bind-key `(,TB-KEY-ARROW-LEFT)	 cursor-left!)
+(%bind-key `(,TB-KEY-ARROW-RIGHT)	 cursor-right!)
+
+(bind-key "C-A"  cursor-start-of-line!)
+(bind-key "C-E"  cursor-end-of-line!)
+(bind-key "C-D"  buffer-delete!)
+(bind-key "C-P"	 cursor-up!)
+(bind-key "C-N"	 cursor-down!)
+(bind-key "C-B"	 cursor-left!)
+(bind-key "C-F"	 cursor-right!)
+
+(bind-key "C-X C-C" quit)
+(bind-key "C-X C-S" save!)
+
 
 (define (dispatch)
   (match (dg (tb-poll-event))
@@ -310,7 +358,7 @@
      (buffer-insert! (char->integer char)))
     (($ <event-key> mode key)
      (dg mode key)
-     ((hashtable-ref key-table key void)))
+     ((dg (%dispatch-key key))))
     (else #f)))
 
 ;; main loop
