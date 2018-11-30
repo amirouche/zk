@@ -339,15 +339,15 @@
   (%bind-key (translate-key-seq key-seq) proc))
 
 
-(bind-key "DELETE"       buffer-delete!)
-(bind-key "ENTER"        buffer-newline!)
-(bind-key "SPACE"        (lambda () (buffer-insert! (char->integer #\space))))
-(bind-key "BACKSPACE2"	 buffer-backspace!)
+(bind-key "DELETE" buffer-delete!)
+(bind-key "ENTER" buffer-newline!)
+(bind-key "SPACE" (lambda () (buffer-insert! (char->integer #\space))))
+(bind-key "BACKSPACE2" buffer-backspace!)
 
-(bind-key "ARROW-UP"     cursor-up!)
-(bind-key "ARROW-DOWN"	 cursor-down!)
-(bind-key "ARROW-LEFT"	 cursor-left!)
-(bind-key "ARROW-RIGHT"	 cursor-right!)
+(bind-key "ARROW-UP" cursor-up!)
+(bind-key "ARROW-DOWN" cursor-down!)
+(bind-key "ARROW-LEFT" cursor-left!)
+(bind-key "ARROW-RIGHT" cursor-right!)
 
 (bind-key "HOME" cursor-start-of-line!)
 (bind-key "END" cursor-end-of-line!)
@@ -361,8 +361,6 @@
 
 (bind-key "C-X C-C" quit)
 (bind-key "C-X C-S" save!)
-
-
 
 (%list-keys)
 
