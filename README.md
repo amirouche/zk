@@ -39,7 +39,7 @@ $ make dev
 
 ## Manual
 
-Use `Ctrl+Q` to quit!
+Use `Ctrl+X Ctrl+C` to quit!
 
 ## How to contribute
 
