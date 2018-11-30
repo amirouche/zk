@@ -26,3 +26,17 @@ $ make dev
 ```
 
 ## [ROADMAP](https://github.com/amirouche/zk/issues/3)
+
+## Style guide
+
+- Add docstring, at least, to exported procedures
+- Avoid multiline lambda in `map`, `for-each`, etc...
+- One import per line to be `M-x sort-lines` friendly
+- Avoid shorthand names like `lp`, `kt` instead of `key-table`. In
+  general single or two char variable names are dubious, three might
+  be fine (e.g. `tmp`).
+- 2 space indentation, do not use tabs
+
+## Manual
+
+Use `Ctrl+Q` to quit!
