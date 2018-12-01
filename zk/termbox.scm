@@ -132,7 +132,7 @@
 
   ;; ffi helpers
 
-  (define %null 0)
+  (define NULL 0)
 
   (define-syntax-rule (pointer->ftype struct pointer)
     (make-ftype-pointer struct (foreign-ref 'void* pointer 0)))
