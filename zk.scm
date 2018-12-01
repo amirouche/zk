@@ -198,7 +198,6 @@
                   (hashtable-set! %styles (cons (+ x index) y) TB-RED))
                 (iota (length token))))))
 
-
 (define (highlight-keywords!)
   (let* ((token '())
          (start-y (view-y))
