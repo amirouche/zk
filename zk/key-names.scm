@@ -1,6 +1,7 @@
 (library (zk key-names)
   (export
-   translate-key-seq)
+   translate-key-seq
+   %key->key-name)
   (import
     (except (chezscheme) define-record-type)
     (zk termbox))
@@ -85,7 +86,11 @@
       ("C-_" . ,TB-KEY-CTRL-UNDERSCORE)
       ("C-UNDERSCORE" . ,TB-KEY-CTRL-UNDERSCORE)
       ("C-8" . ,TB-KEY-CTRL-8)))
-  
+
+  (define (%key->key-name key)
+    (find (lambda (x)
+	    (eq? (cdr x) key))
+	  f-key-map))
   (define (%key-name->keys key-name)
     (cond
      ((eq? (string-length key-name) 1)
