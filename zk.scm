@@ -2,7 +2,7 @@
 (import (matchable))
 
 (import (zk buffer))
-(import (zk event))
+(import (zk key))
 (import (zk helpers))
 (import (zk termbox))
 
@@ -110,13 +110,13 @@
 (define (dispatch model)
   (let ((bindings (model-current-bindings model))
         (insert (model-current-insert model)))
-    (let ((key (dg (make-event (tb-poll-event)))))
+    (let ((key (dg (make-key (tb-poll-event)))))
       (let ((callback (hashtable-ref bindings key insert)))
         (callback model key)))))
 
 ;; main loop
 
-(define (exit* model key)
+(define (zk-exit model key)
   (tb-shutdown)
   (exit))
 
@@ -125,7 +125,7 @@
     #f))
 
 (define scheme-bindings (make-hashtable equal-hash equal?))
-(hashtable-set! scheme-bindings '((#t #f) . q) exit*)
+(hashtable-set! scheme-bindings '((#t #f) . q) zk-exit)
 (hashtable-set! scheme-bindings TB-KEY-CTRL-S frame-split)
 
 (define scheme-mode (make-mode "scheme" scheme-bindings))
