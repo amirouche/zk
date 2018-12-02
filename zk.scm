@@ -301,8 +301,8 @@
   ;; TODO: render mode line
   )
 
-(define (frame-mock frame-buffer)
-  (make-frame frame-buffer))
+(define (%frame-buffer-insert model key)
+  42)
 
 (define %frame-buffer
   (make-frame-buffer %filename
@@ -314,8 +314,8 @@
 (define frame-buffers (make-hashtable string-hash string=?))
 (hashtable-set! frame-buffers %filename %frame-buffer)
 
-(define focus (frame-mock %frame-buffer))
-(define other (frame-mock %frame-buffer))
+(define focus (make-frame %frame-buffer))
+(define other (make-frame %frame-buffer))
 
 (define model (make-model
                (make-frame-vertical
