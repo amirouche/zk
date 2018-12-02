@@ -1,3 +1,4 @@
+(import (srfi s1 lists))
 (import (srfi s9 records))
 (import (matchable))
 
@@ -94,10 +95,10 @@
 (define (filename->buffer filename)
   (string->buffer (call-with-input-file filename read-string)))
 
-(define (print line string)
+(define (print column line string)
   (let ((chars (map char->integer (string->list string)))
         (max (tb-width)))
-    (let loop ((index 0)
+    (let loop ((index column)
                (chars chars))
       (unless (or (null? chars) (eq? index max))
         (tb-change-cell index line (car chars) TB-WHITE TB-DEFAULT)
@@ -199,11 +200,11 @@
 (define key-char (compose char->integer cdr))
 
 (define (meta-command-render model frame)
-  (print 0 "meta-command-render")
+  (print 0 0 "meta-command-render")
   (let ((mini-buffer (model-mini-buffer model)))
     (let ((frame-buffer (frame-buffer mini-buffer)))
       (let ((buffer (frame-buffer-data frame-buffer)))
-        (print 1 (buffer->string buffer)))
+        (print 0 1 (buffer->string buffer)))
       (tb-set-cursor (position-x (frame-cursor-position mini-buffer))
                      (position-y (frame-cursor-position mini-buffer))))))
 
@@ -270,6 +271,16 @@
          (view (buffer-drop-lines head view-y)))
     (buffer-char-for-each (%%frame-buffer-render-char x0 y0 view-x width) view)))
 
+(define (%truncate string width)
+  (if (> (string-length string) width)
+      (list->string (take (string->list string) width))
+      string))
+
+(define (%frame-buffer-render-mode-line model frame width x0 y)
+  (let ((path (frame-buffer-path (frame-buffer frame)))
+        (mode (mode-name (frame-buffer-mode (frame-buffer frame)))))
+    (print x0 y (%truncate (string-append " - " path " - " mode) width))))
+
 (define (%frame-buffer-render model frame)
   (let* ((view-position (frame-view-position frame))
          (top-left (frame-top-left frame))
@@ -287,9 +298,12 @@
                           view-y
                           width
                            ;; minus mode line
-                          (- height 1)))
-  ;; TODO: render mode line
-  )
+                          (- height 1))
+    (%frame-buffer-render-mode-line model
+                                    frame
+                                    width
+                                    (position-x top-left)
+                                    (position-y bottom-right))))
 
 (define (%frame-buffer-insert model key)
   42)
@@ -308,7 +322,7 @@
 (define other (make-frame %frame-buffer))
 
 (define model (make-model
-               (make-frame-vertical
+               (make-frame-horizontal
                 #f
                 focus
                 other)
