@@ -28,12 +28,14 @@
 ;; model
 
 (define-record-type <model>
-  (make-model root frame-buffers mini-buffer focus)
+  (make-model root frame-buffers mini-buffer focus width height)
   model?
   (root model-root model-root!)
   (frame-buffers model-frame-buffers model-frame-buffers!)
   (mini-buffer model-mini-buffer model-mini-buffer!)
-  (focus model-focus model-focus!))
+  (focus model-focus model-focus!)
+  (width model-width model-width!)
+  (height model-height model-height!))
 
 (define-record-type <frame>
   (%make-frame frame-buffer parent cursor-position view-position top-left bottom-right)
@@ -75,11 +77,11 @@
   (bindings mode-bindings))
 
 (define-record-type <frame-buffer>
-  (make-frame-buffer path data view mode insert)
+  (make-frame-buffer path data render mode insert)
   frame-buffer?
   (path frame-buffer-path frame-buffer-path!)
   (data frame-buffer-data frame-buffer-data!)
-  (view frame-buffer-render frame-buffer-render!)
+  (render frame-buffer-render frame-buffer-render!)
   (mode frame-buffer-mode frame-buffer-mode!)
   (insert frame-buffer-insert frame-buffer-insert!))
 
@@ -104,26 +106,26 @@
         (tb-change-cell index line (car chars) TB-WHITE TB-DEFAULT)
         (loop (+ 1 index) (cdr chars))))))
 
-(define (%frame-render model frame)
+(define (%%frame-render model frame)
   (let ((frame-buffer (frame-buffer frame)))
     ((frame-buffer-render frame-buffer) model frame)))
 
-(define (frame-render model frame)
+(define (%frame-render model frame)
   (match frame
-    ((? frame? frame) (%frame-render model frame))
+    ((? frame? frame) (%%frame-render model frame))
     ((? frame-vertical? frame)
-     (frame-render model (frame-vertical-up frame))
-     (frame-render model (frame-vertical-down frame)))
+     (%frame-render model (frame-vertical-up frame))
+     (%frame-render model (frame-vertical-down frame)))
     ((? frame-horizontal? frame)
-     (frame-render model (frame-horizontal-left frame))
-     (frame-render model (frame-horizontal-right frame)))))
+     (%frame-render model (frame-horizontal-left frame))
+     (%frame-render model (frame-horizontal-right frame)))))
 
 (define (render model)
-  (if (model-mini-buffer model)
-      (let ((view (frame-render (model-mini-buffer model))))
-        (view model (model-mini-buffer model)))
-      (let ((root (model-root model)))
-        (frame-render model root))))
+  (when (model-mini-buffer model)
+    (let ((%render (frame-buffer-render (frame-buffer (model-mini-buffer model)))))
+      (%render model (model-mini-buffer model))))
+  (let ((root (model-root model)))
+    (%frame-render model root)))
 
 (define (model-current-focus model)
   (if (model-mini-buffer model)
@@ -173,15 +175,23 @@
                  bottom-right)))))
 
 (define (layout! model)
-  (%layout! (model-root model)
-            (make-position 0 0)
-            ;; height minus the mini-buffer size
-            (make-position (tb-width) (- (tb-height) 1))))
+  (let ((width (tb-width))
+        (height (tb-height)))
+    (model-width! model width)
+    (model-height! model height)
+    (%layout! (model-root model)
+              (make-position 0 0)
+              ;; height minus the mini-buffer size
+              (make-position width (- height 2)))))
 
 ;; main loop
 
 (define (make-bindings)
   (make-hashtable equal-hash equal?))
+
+;; TODO: replace with combinators
+(define (make-binding ctrl alt symbol)
+  (cons (list ctrl alt) symbol))
 
 (define scheme-bindings (make-bindings))
 
@@ -189,24 +199,18 @@
   (tb-shutdown)
   (exit))
 
-(hashtable-set! scheme-bindings '((#t #f) . q) zk-exit)
+(hashtable-set! scheme-bindings (make-binding #t #f #\q) zk-exit)
 
 ;; meta command
 
-;; TODO: replace with combinators
-(define (make-binding ctrl alt symbol)
-  (cons (list ctrl alt) symbol))
 
 (define key-char (compose char->integer cdr))
 
 (define (meta-command-render model frame)
-  (print 0 0 "meta-command-render")
   (let ((mini-buffer (model-mini-buffer model)))
     (let ((frame-buffer (frame-buffer mini-buffer)))
       (let ((buffer (frame-buffer-data frame-buffer)))
-        (print 0 1 (buffer->string buffer)))
-      (tb-set-cursor (position-x (frame-cursor-position mini-buffer))
-                     (position-y (frame-cursor-position mini-buffer))))))
+        (print 0 (- (model-height model) 1) (buffer->string buffer))))))
 
 (define (meta-command-on-enter model key)
   (dg 'mini-buffer-input (buffer->string
@@ -224,13 +228,14 @@
 (define (meta-command-insert model key)
   ;; meta-command always works with mini-buffer
   (let* ((frame (model-mini-buffer model))
-         (frame-buffer* (frame-buffer frame))
-         (buffer (frame-buffer-data frame-buffer*)))
-    (let ((new (buffer-char-insert buffer
-                                   0
-                                   (position-y (frame-cursor-position frame))
-                                   (key-char key))))
-      (frame-buffer-data! frame-buffer* new)
+         (frame-buffer (frame-buffer frame))
+         (buffer (frame-buffer-data frame-buffer)))
+    (let ((new-frame-buffer
+           (buffer-char-insert buffer
+                               0
+                               (position-y (frame-cursor-position frame))
+                               (key-char key))))
+      (frame-buffer-data! frame-buffer new-frame-buffer)
       (frame-cursor-position! frame
                               (make-position (position-x (frame-cursor-position frame))
                                              (+ 1 (position-y (frame-cursor-position frame))))))))
@@ -246,7 +251,8 @@
 (define (zk-meta-command model key)
   (model-mini-buffer! model (meta-command key)))
 
-(hashtable-set! scheme-bindings (make-binding #t #f #\q) zk-exit)
+(hashtable-set! scheme-bindings (make-binding #t #f #\x) zk-meta-command)
+
 
 (define scheme-mode (make-mode "scheme" scheme-bindings))
 
@@ -329,6 +335,8 @@
                frame-buffers
                #f
                focus
+               #f
+               #f
                ))
 
 (define (main)
