@@ -103,8 +103,6 @@
         (tb-change-cell index line (car chars) TB-WHITE TB-DEFAULT)
         (loop (+ 1 index) (cdr chars))))))
 
-(define frame-render (compose frame-buffer-render frame-buffer))
-
 (define (%frame-render model frame)
   (let ((frame-buffer (frame-buffer frame)))
     ((frame-buffer-render frame-buffer) model frame)))
