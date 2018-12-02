@@ -56,15 +56,15 @@
   (define (make-line line)
     (make-index-list (map char->integer (string->list line))))
 
-
   (define (compose . procs)
-    (lambda (arg)
-      (let loop ((procs (reverse procs))
-                 (arg arg))
-        (if (null? procs)
-            arg
-            (loop (cdr procs)
-                  ((car procs) arg))))))
+    (let ((procs (reverse procs)))
+      (lambda (arg)
+        (let loop ((procs procs)
+                   (arg arg))
+          (if (null? procs)
+              arg
+              (loop (cdr procs)
+                    ((car procs) arg)))))))
 
   (define (string-split string char)
     (let loop ((in (string->list string))

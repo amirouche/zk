@@ -4,6 +4,7 @@
          (eval . (progn
                    ;; scheme stuff
                    (put 'unless 'scheme-indent-function 1)
+                   (put 'when 'scheme-indent-function 1)
                    ;; minikanren stuff
                    (put 'run* 'scheme-indent-function 1)
                    (put 'fresh 'scheme-indent-function 1)

@@ -18,6 +18,12 @@
   (write rest %error) (newline %error)
   (car (reverse rest)))
 
+(define (make-position x y)
+  (cons x y))
+
+(define position-x car)
+(define position-y cdr)
+
 ;; model
 
 (define-record-type <model>
@@ -29,13 +35,19 @@
   (focus model-focus model-focus!))
 
 (define-record-type <frame>
-  (make-frame frame-buffer parent cursor-position top-left bottom-right)
+  (%make-frame frame-buffer parent cursor-position view-position top-left bottom-right)
   frame?
   (frame-buffer frame-buffer frame-buffer!)
   (parent frame-parent frame-parent!)
   (cursor-position frame-cursor-position frame-cursor-position!)
+  (view-position frame-view-position frame-view-position!)
   (top-left frame-top-left frame-top-left!)
   (bottom-right frame-bottom-right frame-bottom-right!))
+
+(define %position-init (make-position 0 0))
+
+(define (make-frame frame-buffer)
+  (%make-frame frame-buffer #f %position-init %position-init #f #f))
 
 (define (frame-layout! frame top-left bottom-right)
   (frame-top-left! frame top-left)
@@ -66,13 +78,11 @@
   frame-buffer?
   (path frame-buffer-path frame-buffer-path!)
   (data frame-buffer-data frame-buffer-data!)
-  (view frame-buffer-view frame-buffer-view!)
+  (view frame-buffer-render frame-buffer-render!)
   (mode frame-buffer-mode frame-buffer-mode!)
   (insert frame-buffer-insert frame-buffer-insert!))
 
 ;;
-
-(define %filename "zk.scm")
 
 (define (read-string port)
   (let loop ((out '()))
@@ -83,8 +93,6 @@
 
 (define (filename->buffer filename)
   (string->buffer (call-with-input-file filename read-string)))
-
-(define %buffer (filename->buffer %filename))
 
 (define (render-char x y char)
   (when (and (>= x (view-x))
@@ -103,11 +111,11 @@
         (loop (+ 1 index) (cdr chars))))))
 
 
-(define frame-view (compose frame-buffer-view frame-buffer))
+(define frame-render (compose frame-buffer-render frame-buffer))
 
 (define (%frame-render model frame)
   (let ((frame-buffer (frame-buffer frame)))
-    ((frame-buffer-view frame-buffer) model frame)))
+    ((frame-buffer-render frame-buffer) model frame)))
 
 (define (frame-render model frame)
   (match frame
@@ -121,7 +129,7 @@
 
 (define (render model)
   (if (model-mini-buffer model)
-      (let ((view (frame-view (model-mini-buffer model))))
+      (let ((view (frame-render (model-mini-buffer model))))
         (view model (model-mini-buffer model)))
       (let ((root (model-root model)))
         (frame-render model root))))
@@ -147,7 +155,6 @@
 ;; layout
 
 (define (%layout! frame top-left bottom-right)
-  ;; (pk frame top-left bottom-right)
   (match frame
     ((? frame? frame)
      (frame-layout! frame top-left bottom-right))
@@ -180,38 +187,7 @@
             ;; height minus the mini-buffer size
             (make-position (tb-width) (- (tb-height) 1))))
 
-(define (frame-mock name)
-  (let ((frame-buffer (make-frame-buffer name
-                                         #f
-                                         (lambda (model frame)
-                                           (let ((position (frame-top-left frame)))
-                                             (tb-change-cell (position-x position)
-                                                             (position-y position)
-                                                             120
-                                                             TB-WHITE
-                                                             TB-DEFAULT))
-                                           (let ((position (frame-bottom-right frame)))
-                                             (tb-change-cell (- (position-x position) 1)
-                                                             (- (position-y position) 1)
-                                                             121
-                                                             TB-WHITE
-                                                             TB-DEFAULT)))
-                                         #f
-                                         #f)))
-    (make-frame frame-buffer
-                #f
-                (make-position 0 0)
-                #f
-                #f)))
-
-
 ;; main loop
-
-(define (make-position x y)
-  (cons x y))
-
-(define position-x car)
-(define position-y cdr)
 
 (define (make-bindings)
   (make-hashtable equal-hash equal?))
@@ -232,8 +208,8 @@
 
 (define key-char (compose char->integer cdr))
 
-(define (meta-command-view model frame)
-  (print 0 "meta-command-view")
+(define (meta-command-render model frame)
+  (print 0 "meta-command-render")
   (let ((mini-buffer (model-mini-buffer model)))
     (let ((frame-buffer (frame-buffer mini-buffer)))
       (let ((buffer (frame-buffer-data frame-buffer)))
@@ -271,23 +247,19 @@
 (define (meta-command key)
   (let ((frame-buffer (make-frame-buffer #f
                                          (string->buffer "")
-                                         meta-command-view
+                                         meta-command-render
                                          (meta-command-mode)
                                          meta-command-insert)))
-    (make-frame frame-buffer
-                #f
-                (make-position 1 0)
-                (make-position 1 0)
-                (make-position 1 0))))
+    (make-frame frame-buffer)))
 
 (define (zk-meta-command model key)
   (model-mini-buffer! model (meta-command key)))
 
-(hashtable-set! scheme-bindings (make-binding #t #f #\x) zk-meta-command)
+(hashtable-set! scheme-bindings (make-binding #t #f #\q) zk-exit)
 
 (define scheme-mode (make-mode "scheme" scheme-bindings))
 
-(define filename "zk.scm")
+(define %filename "zk.scm")
 
 (define (read-string port)
   (let loop ((out '()))
@@ -299,42 +271,71 @@
 (define (filename->buffer filename)
   (string->buffer (call-with-input-file filename read-string)))
 
-;; (lambda (model top-left bottom-right) (dg 'view))
-;; (define (file-buffer-view filename
+(define (%%frame-buffer-render-char x0 y0 view-x max-x)
+  (lambda (x y char)
+   (tb-change-cell (+ x0 x) (+ y0 y) char TB-WHITE TB-DEFAULT)))
 
-(define %frame-buffer (make-frame-buffer filename
-                                         (filename->buffer %filename)
-                                         void
-                                         scheme-mode
-                                         (lambda (model key) (dg 'insert))))
+(define (%%frame-buffer-render buffer x0 y0 view-x view-y width height)
+  (let* ((head (buffer-take-lines buffer (+ view-y height)))
+         (view (buffer-drop-lines head view-y)))
+    (buffer-char-for-each (%%frame-buffer-render-char x0 y0 view-x width) view)))
 
-(define root (make-frame %frame-buffer
-                         #f
-                         (make-position 0 0)
-                         (make-position 0 0)
-                         (make-position 0 0)))
+(define (%frame-buffer-render model frame)
+  (let* ((view-position (frame-view-position frame))
+         (top-left (frame-top-left frame))
+         (bottom-right (frame-bottom-right frame))
+         (view-x (position-x view-position))
+         (view-y (position-y view-position))
+         (width (- (position-x bottom-right)
+                   (position-x top-left)))
+         (height (- (position-y bottom-right)
+                    (position-y top-left))))
+    (%%frame-buffer-render (frame-buffer-data (frame-buffer frame))
+                          (position-x top-left)
+                          (position-y top-left)
+                          view-x
+                          view-y
+                          width
+                           ;; minus mode line
+                          (- height 1)))
+  ;; TODO: render mode line
+  )
+
+(define (frame-mock frame-buffer)
+  (make-frame frame-buffer))
+
+(define %frame-buffer
+  (make-frame-buffer %filename
+                     (filename->buffer %filename)
+                     %frame-buffer-render
+                     scheme-mode
+                     %frame-buffer-insert))
 
 (define frame-buffers (make-hashtable string-hash string=?))
-(hashtable-set! frame-buffers filename %frame-buffer)
+(hashtable-set! frame-buffers %filename %frame-buffer)
 
-(define model (make-model (make-frame-horizontal
-                           #f
-                           (make-frame-vertical #f (frame-mock "top") (frame-mock "bottom"))
-                           (make-frame-vertical #f (frame-mock "top") (frame-mock "bottom")))
-                          frame-buffers
-                          #f
-                          root
-                          ))
+(define focus (frame-mock %frame-buffer))
+(define other (frame-mock %frame-buffer))
+
+(define model (make-model
+               (make-frame-vertical
+                #f
+                focus
+                other)
+               frame-buffers
+               #f
+               focus
+               ))
 
 (define (main)
   (tb-init)
   (let loop ()
     (tb-clear)
     (layout! model)
-    (dg (model-root model))
     (render model)
     (tb-present)
     (dispatch model)
     (loop)))
+
 
 (main)
