@@ -4,6 +4,7 @@
    define-syntax-rule
    pk
    compose
+   eval-string
    )
   (import (chezscheme))
 
@@ -32,5 +33,9 @@
           (if (null? procs)
               arg
               (loop (cdr procs) ((car procs) arg)))))))
+
+  (define (eval-string string)
+    (let ((port (open-string-input-port string)))
+      (eval (read port))))
 
   )
