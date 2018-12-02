@@ -263,7 +263,8 @@
     ((foreign-procedure* void "tb_present")))
 
   (define (tb-set-cursor cx cy)
-    ((foreign-procedure* void "tb_set_cursor" integer-64 integer-64) cx cy))
+    ;; mind the fact that cx and cy are reversed
+    ((foreign-procedure* void "tb_set_cursor" integer-64 integer-64) cy cx))
 
   (define (tb-hide-cursor)
     (tb-set-cursor -1 -1))
