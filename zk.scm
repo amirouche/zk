@@ -94,13 +94,6 @@
 (define (filename->buffer filename)
   (string->buffer (call-with-input-file filename read-string)))
 
-(define (render-char x y char)
-  (when (and (>= x (view-x))
-             (< x (+ (view-x) (tb-width)))
-             (>= y (view-y))
-             (< y (+ (view-y) (- (tb-height) 1))))
-        (tb-change-cell (- x (view-x)) (- y (view-y)) char TB-WHITE TB-DEFAULT)))
-
 (define (print line string)
   (let ((chars (map char->integer (string->list string)))
         (max (tb-width)))
