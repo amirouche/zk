@@ -143,4 +143,43 @@
     (call-with-values (lambda () (fingertree-split* index buffer))
       (lambda (head tail)
         (fingertree-append head (fingertree-cons (make-index-list (list)) tail)))))
+
+  ;; (define (buffer-length)
+  ;;   (buffer-line-count %buffer))
+
+  ;; (define (buffer-current-line-length)
+  ;;   (buffer-line-length %buffer (cursor-line)))
+
+  ;; (define (buffer-insert! char)
+  ;;   (set! %buffer (buffer-char-insert %buffer (cursor-line) (cursor-column) char))
+  ;;   (cursor-right!))
+
+  ;; (define (buffer-delete!)
+  ;;   (cond
+  ;;    ((and (eq? (cursor-line) (- (buffer-length) 1)) (eq? (cursor-column) (buffer-current-line-length)))
+  ;;     #f)
+  ;;    ((eq? (cursor-column) (buffer-current-line-length)) (buffer-merge-lines!))
+  ;;    (else (set! %buffer (buffer-char-delete %buffer (cursor-line) (cursor-column))))))
+
+  ;; (define (buffer-merge-lines!)
+  ;;   (set! %buffer (buffer-merge-lines-at %buffer (cursor-line))))
+
+  ;; (define (buffer-newline!)
+  ;;   (cond
+  ;;    ((eq? (cursor-column) (buffer-current-line-length))
+  ;;     (set! %buffer (buffer-newline-at %buffer (+ 1 (cursor-line)))))
+  ;;    ((eq? (cursor-column) 0)
+  ;;     (set! %buffer (buffer-newline-at %buffer (cursor-line))))
+  ;;    (else (set! %buffer (buffer-split-line-at %buffer (cursor-line) (cursor-column)))
+  ;;          (cursor-x! 0)))
+  ;;   (cursor-down!))
+
+  ;; (define (buffer-backspace!)
+  ;;   (cond
+  ;;    ((and (eq? (cursor-column) 0) (not (eq? (cursor-line) 0)))
+  ;;     (cursor-up!)
+  ;;     (cursor-end-of-line!)
+  ;;     (buffer-merge-lines!))
+  ;;    ((not (and (eq? (cursor-column) 0) (eq? (cursor-line) 0))) (cursor-left!) (buffer-delete!))))
+
   )

@@ -3,6 +3,7 @@
    pp
    define-syntax-rule
    pk
+   compose
    )
   (import (chezscheme))
 
@@ -22,5 +23,14 @@
        (define-syntax keyword
          (syntax-rules ()
            [(keyword args ...) body]))]))
+
+  (define (compose . procs)
+    (let ((procs (reverse procs)))
+      (lambda args
+        (let loop ((procs (cdr procs))
+                   (arg (apply (car procs) args)))
+          (if (null? procs)
+              arg
+              (loop (cdr procs) ((car procs) arg)))))))
 
   )
