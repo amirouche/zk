@@ -1,9 +1,10 @@
 (library (zk key-names)
   (export
-   translate-key-seq)
+   translate-key-seq
+   %key->key-name)
   (import
-   (except (chezscheme) define-record-type)
-   (zk termbox))
+    (except (chezscheme) define-record-type)
+    (zk termbox))
 
   (define f-key-map
     `(("F1" . ,TB-KEY-F1)
@@ -87,6 +88,12 @@
       ("C-UNDERSCORE" . ,TB-KEY-CTRL-UNDERSCORE)
       ("C-8" . ,TB-KEY-CTRL-8)))
 
+
+  (define (%key->key-name key)
+    "convert a key in termbox definition to an emacs-style key-name"
+    (find (lambda (x)
+	    (eq? (cdr x) key))
+	  f-key-map))
   (define (%key-name->keys key-name)
     (cond
      ((eq? (string-length key-name) 1)
@@ -122,6 +129,12 @@
               (substring str es len))))
 
   (define (translate-key-seq k-seq)
+    "Convert an emacs-style key-sequence to a list of Termbox keys,
+     \"C-X\" will give `(,TB-KEY-CTRL-X)
+     \"C-X C-S\" will give `(,TB-KEY-CTRL-X ,TB-KEY-CTRL-S)
+     \"M-x\" will give `(,TB-KEY-ESC #\\x)
+     \"C-M-X\" will give `(,TB-KEY-ESC ,TB-KEY-CTRL-X)
+     \"C-X C-M-S\" will give `(,TB-KEY-CTRL-X ,TB-KEY-ESC ,TB-KEY-CTRL-S) "
     (if (eq? 0 (string-length k-seq))
         '()
         (let-values (((first rest)

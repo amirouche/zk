@@ -1,6 +1,7 @@
 (import (srfi s9 records))
 (import (matchable))
 
+
 (import (zk termbox))
 (import (zk key-names))
 (import (zk buffer))
@@ -339,6 +340,7 @@
   (%bind-key (translate-key-seq key-seq) proc))
 
 
+
 (bind-key "DELETE" buffer-delete!)
 (bind-key "ENTER" buffer-newline!)
 (bind-key "SPACE" (lambda () (buffer-insert! (char->integer #\space))))
@@ -359,10 +361,12 @@
 (bind-key "C-B" cursor-left!)
 (bind-key "C-F" cursor-right!)
 
+
 (bind-key "C-X C-C" quit)
 (bind-key "C-X C-S" save!)
 
 (%list-keys)
+
 
 (define (dispatch)
   (match (dg (tb-poll-event))
