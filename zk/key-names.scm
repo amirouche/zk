@@ -132,7 +132,7 @@
     "Convert an emacs-style key-sequence to a list of Termbox keys,
      \"C-X\" will give `(,TB-KEY-CTRL-X)
      \"C-X C-S\" will give `(,TB-KEY-CTRL-X ,TB-KEY-CTRL-S)
-     \"M-x\" will give `(,TB-KEY-ESC #\x)
+     \"M-x\" will give `(,TB-KEY-ESC #\\x)
      \"C-M-X\" will give `(,TB-KEY-ESC ,TB-KEY-CTRL-X)
      \"C-X C-M-S\" will give `(,TB-KEY-CTRL-X ,TB-KEY-ESC ,TB-KEY-CTRL-S) "
     (if (eq? 0 (string-length k-seq))
