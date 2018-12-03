@@ -1,15 +1,17 @@
 (import (srfi s9 records))
 (import (matchable))
 
-(import (zk termbox)
-	(zk key-names))
+
+(import (zk termbox))
+(import (zk key-names))
 (import (zk buffer))
 (import (zk helpers))
+
 
 (define %error (open-file-output-port "out.log"
                                       (file-options no-fail)
                                       (buffer-mode line)
-                                      (make-transcoder (utf-8-codec))))
+                                      (native-transcoder)))
 
 (define (dg . rest)
   (write rest %error) (newline %error)
@@ -279,80 +281,91 @@
   (tb-shutdown)
   (exit))
 
-(define (save!)
-  (call-with-output-file %filename
-    (lambda (port)
-      (display (buffer->string %buffer) port))))
+(define (%save! port)
+  (display (buffer->string %buffer) port))
 
-(define key-table
+
+(define (current-file-output-port)
+  (open-file-output-port %filename
+                         (file-options no-fail)
+                         (buffer-mode block)
+                         (native-transcoder)))
+
+(define (save!)
+  (call-with-port (current-file-output-port) %save!))
+
+(define %key-table
   (make-eq-hashtable))
 
-(define %bind-key #f)
-(define %list-keys #f)
-(define %match-key #f)
-(let ((key-table (make-eq-hashtable)))
-  (set! %bind-key
-    (lambda (key-seq proc)
-      (let lp ((ck (car key-seq))
-	      (rest-key (cdr key-seq))
-	      (kt key-table))
-       (if (pair? rest-key)
-	   (let ((cte (hashtable-ref kt ck void)))
-	     (begin (if (not (hashtable? cte))
-			(begin (set! cte (make-eq-hashtable))
-			       (hashtable-set! kt ck cte)))
-		    (lp (car rest-key) (cdr rest-key) cte)))
-	   (hashtable-set! kt ck proc)))))
-  (set! %list-keys
-    (case-lambda
-      [() (%list-keys key-table "")]
-      [(kt prefix)
-       (hash-table-for-each
-	kt
-	(lambda (k v)
-	  (display `(,prefix ,k ,v) %error)
-	  (newline %error)
-	  (if (hashtable? v)
-	      (%list-keys v (format #f "~a ~a" prefix k )))))]))
-  (set! %dispatch-key
-    (case-lambda
-      [(k) (%dispatch-key k key-table)]
-      [(k kt)
-       (if (eq? k TB-KEY-CTRL-G)
-	   void
-	   (let ((proc-or-hash (hashtable-ref kt k void)))
-	     (if (hashtable? proc-or-hash)
-		 (%dispatch-key (match (tb-poll-event)
-				       (($ <event-char> char) char)
-				       (($ <event-key> mode key) key)) proc-or-hash)
-		 proc-or-hash)))])))
+(define (%bind-key key-seq proc)
+  (let loop ((key (car key-seq))
+             (rest (cdr key-seq))
+             (key-table %key-table))
+    (if (null? rest)
+        (hashtable-set! key-table key proc)
+        (let ((key-table* (hashtable-ref key-table key #f)))
+          (if key-table*
+              (loop (car rest) (cdr rest) key-table*)
+              (let ((sub (make-eq-hashtable)))
+                (hashtable-set! key-table key sub)
+                (loop (car rest) (cdr rest) sub)))))))
+
+(define (%%list-keys prefix)
+  (lambda (k v)
+    (display `(,prefix ,k ,v) %error)
+    (newline %error)
+    (if (hashtable? v)
+        (%list-keys v (format #f "~a ~a" prefix k )))))
+
+(define %list-keys
+  (case-lambda
+   [() (%list-keys %key-table "")]
+   [(key-table prefix) (hash-table-for-each key-table (%%list-keys prefix))]))
+
+(define %dispatch-key
+  (case-lambda
+   [(key) (%dispatch-key key %key-table)]
+   [(key key-table)
+    (dg '%dispatch-key key)
+    (if (eq? key TB-KEY-CTRL-G)
+        void
+        (let ((proc-or-hash (hashtable-ref key-table key void)))
+          (if (hashtable? proc-or-hash)
+              (%dispatch-key (match (tb-poll-event)
+                                    (($ <event-char> char) char)
+                                    (($ <event-key> mode* key*) key*)) proc-or-hash)
+              proc-or-hash)))]))
 
 (define (bind-key key-seq proc)
   (%bind-key (translate-key-seq key-seq) proc))
 
 
-(bind-key "DELETE"       buffer-delete!)
-(bind-key "ENTER"        buffer-newline!)
-(bind-key "SPACE"        (lambda () (buffer-insert! (char->integer #\space))))
-(bind-key "BACKSPACE2"	 buffer-backspace!)
 
-(bind-key "ARROW-UP"     cursor-up!)
-(bind-key "ARROW-DOWN"	 cursor-down!)
-(bind-key "ARROW-LEFT"	 cursor-left!)
-(bind-key "ARROW-RIGHT"	 cursor-right!)
+(bind-key "DELETE" buffer-delete!)
+(bind-key "ENTER" buffer-newline!)
+(bind-key "SPACE" (lambda () (buffer-insert! (char->integer #\space))))
+(bind-key "BACKSPACE2" buffer-backspace!)
+
+(bind-key "ARROW-UP" cursor-up!)
+(bind-key "ARROW-DOWN" cursor-down!)
+(bind-key "ARROW-LEFT" cursor-left!)
+(bind-key "ARROW-RIGHT" cursor-right!)
 
 (bind-key "HOME" cursor-start-of-line!)
 (bind-key "END" cursor-end-of-line!)
-(bind-key "C-A"  cursor-start-of-line!)
-(bind-key "C-E"  cursor-end-of-line!)
-(bind-key "C-D"  buffer-delete!)
-(bind-key "C-P"	 cursor-up!)
-(bind-key "C-N"	 cursor-down!)
-(bind-key "C-B"	 cursor-left!)
-(bind-key "C-F"	 cursor-right!)
+(bind-key "C-A" cursor-start-of-line!)
+(bind-key "C-E" cursor-end-of-line!)
+(bind-key "C-D" buffer-delete!)
+(bind-key "C-P" cursor-up!)
+(bind-key "C-N" cursor-down!)
+(bind-key "C-B" cursor-left!)
+(bind-key "C-F" cursor-right!)
+
 
 (bind-key "C-X C-C" quit)
 (bind-key "C-X C-S" save!)
+
+(%list-keys)
 
 
 (define (dispatch)

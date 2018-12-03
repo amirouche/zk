@@ -7,4 +7,4 @@ dev: ## Setup dev environment, you still need Chez Scheme
 	akku install
 	@echo "\n  Now you can do: source .akku/bin/activate"
 	@echo "\n  Then run the editor with: scheme zk.scm"
-	@echo "\n  You can quit the editor by typing: Ctrl+Q\n"
+	@echo "\n  You can quit the editor by typing: Ctrl+X Ctrl+C\n"

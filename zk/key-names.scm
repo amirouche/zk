@@ -5,6 +5,7 @@
   (import
     (except (chezscheme) define-record-type)
     (zk termbox))
+
   (define f-key-map
     `(("F1" . ,TB-KEY-F1)
       ("F2" . ,TB-KEY-F2)
@@ -87,15 +88,19 @@
       ("C-UNDERSCORE" . ,TB-KEY-CTRL-UNDERSCORE)
       ("C-8" . ,TB-KEY-CTRL-8)))
 
+<<<<<<< HEAD
   (define (%key->key-name key)
     (find (lambda (x)
 	    (eq? (cdr x) key))
 	  f-key-map))
+=======
+>>>>>>> 00d756d92b7794048dbe1fa840692ef753372c44
   (define (%key-name->keys key-name)
     (cond
      ((eq? (string-length key-name) 1)
       (cons (string-ref key-name 0) '()))
      ((assoc key-name f-key-map) => (lambda (x)
+<<<<<<< HEAD
 					(cons (cdr x) '())))
      ((and (> (string-length key-name) 4)
 	   (string=? (substring key-name 0 4) "C-M-"))
@@ -131,3 +136,41 @@
 		      (%split1 k-seq)))
 	  (append (%key-name->keys first)
 		  (translate-key-seq rest))))))
+=======
+                                      (cons (cdr x) '())))
+     ((and (> (string-length key-name) 4)
+           (string=? (substring key-name 0 4) "C-M-"))
+      (cons TB-KEY-ESC (%key-name->keys
+                        (string-append
+                         "C-"
+                         (substring key-name 4 (string-length key-name))))))
+     ((string=? (substring key-name 0 2) "M-")
+      (cons TB-KEY-ESC (%key-name->keys
+                        (substring key-name 2 (string-length key-name)))))
+     (else '())))
+
+  (define (%split1 str)
+    (let* ((len (string-length str))
+           (fs (let lp ((i 0))
+                 (if (< i len)
+                     (if (char=? (string-ref str i) #\ )
+                         i
+                         (lp (+ i 1)))
+                     len)))
+           (es (let lp ((i fs))
+                 (if (< i len)
+                     (if (char=? (string-ref str i) #\ )
+                         (lp (+ i 1))
+                         i)
+                     len))))
+      (values (substring str 0 fs)
+              (substring str es len))))
+
+  (define (translate-key-seq k-seq)
+    (if (eq? 0 (string-length k-seq))
+        '()
+        (let-values (((first rest)
+                      (%split1 k-seq)))
+          (append (%key-name->keys first)
+                  (translate-key-seq rest))))))
+>>>>>>> 00d756d92b7794048dbe1fa840692ef753372c44
