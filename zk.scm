@@ -327,17 +327,12 @@
 (define focus (make-frame %frame-buffer))
 (define other (make-frame %frame-buffer))
 
-(define model (make-model
-               (make-frame-horizontal
-                #f
-                focus
-                other)
-               frame-buffers
-               #f
-               focus
-               #f
-               #f
-               ))
+(define model (make-model (make-frame-horizontal #f focus other)
+                          frame-buffers
+                          #f
+                          focus
+                          #f
+                          #f))
 
 (define (main)
   (tb-init)
