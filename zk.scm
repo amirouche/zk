@@ -196,11 +196,16 @@
 
 (define key-char (compose char->integer cdr))
 
+(define (meta-command-clear model key)
+  (model-mini-buffer! model #f))
+
 (define (meta-command-render model frame)
   (let ((mini-buffer (model-mini-buffer model)))
     (let ((frame-buffer (frame-buffer mini-buffer)))
       (let ((buffer (frame-buffer-data frame-buffer)))
-        (print 0 (- (model-height model) 1) (buffer->string buffer))))))
+        (print 0 (- (model-height model) 1) (buffer->string buffer))))
+    (let ((position (frame-cursor-position mini-buffer)))
+      (tb-set-cursor (position-x position) (- (model-height model) 1)))))
 
 (define (meta-command-on-enter model key)
   (dg 'mini-buffer-input (buffer->string
@@ -213,6 +218,7 @@
   (let ((bindings (make-bindings)))
     (hashtable-set! bindings (make-binding #f #f 'enter) meta-command-on-enter)
     (hashtable-set! bindings (make-binding #t #f #\q) zk-exit)
+    (hashtable-set! bindings (make-binding #t #f #\g) meta-command-clear)
     (make-mode "meta-command" bindings)))
 
 (define (meta-command-insert model key)
@@ -223,12 +229,12 @@
     (let ((new-frame-buffer
            (buffer-char-insert buffer
                                0
-                               (position-y (frame-cursor-position frame))
+                               (position-x (frame-cursor-position frame))
                                (key-char key))))
       (frame-buffer-data! frame-buffer new-frame-buffer)
       (frame-cursor-position! frame
-                              (make-position (position-x (frame-cursor-position frame))
-                                             (+ 1 (position-y (frame-cursor-position frame))))))))
+                              (make-position (+ 1 (position-x (frame-cursor-position frame)))
+                                             (position-y (frame-cursor-position frame)))))))
 
 (define (meta-command key)
   (let ((frame-buffer (make-frame-buffer #f
@@ -295,6 +301,9 @@
                           width
                            ;; minus mode line
                           (- height 1))
+    (when (eq? (model-current-focus model) frame)
+      (tb-set-cursor (- (position-x (frame-cursor-position frame)) view-x)
+                     (- (position-y (frame-cursor-position frame)) view-y)))
     (%frame-buffer-render-mode-line model
                                     frame
                                     width
@@ -317,7 +326,7 @@
 (define focus (make-frame %frame-buffer))
 (define other (make-frame %frame-buffer))
 
-(define model (make-model (make-frame-horizontal #f focus other)
+(define model (make-model focus ;;(make-frame-horizontal #f focus other)
                           frame-buffers
                           #f
                           focus

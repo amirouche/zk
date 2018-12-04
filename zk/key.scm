@@ -20,8 +20,8 @@
       ;; (($ <event-mouse> mode key x y ) (event-mouse->event mode key x y))
       (_ '())))
 
-  ;; events use consand `cons` in order to make it possible to compare
-  ;; with `equal?`
+  ;; events use `list` and `cons` in order to make it possible to
+  ;; compare with `equal?`
   (define (%make-key ctrl alt key)
     (cons (list ctrl alt) key))
 
