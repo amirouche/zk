@@ -87,16 +87,6 @@
 
 ;;
 
-(define (read-string port)
-  (let loop ((out '()))
-    (let ((char (read-char port)))
-      (if (eof-object? char)
-          (list->string (reverse out))
-          (loop (cons char out))))))
-
-(define (filename->buffer filename)
-  (string->buffer (call-with-input-file filename read-string)))
-
 (define (print column line string)
   (let ((chars (map char->integer (string->list string)))
         (max (tb-width)))
