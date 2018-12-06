@@ -180,8 +180,6 @@
   (make-hashtable equal-hash equal?))
 
 ;; TODO: replace with combinators
-(define (make-binding ctrl alt symbol)
-  (cons (list ctrl alt) symbol))
 
 (define scheme-bindings (make-bindings))
 
@@ -189,7 +187,7 @@
   (tb-shutdown)
   (exit))
 
-(hashtable-set! scheme-bindings (make-binding #t #f #\q) zk-exit)
+(hashtable-set! scheme-bindings (dg (ctrl (key #\q))) zk-exit)
 
 ;; meta command
 
@@ -215,9 +213,9 @@
 
 (define (meta-command-mode)
   (let ((bindings (make-bindings)))
-    (hashtable-set! bindings (make-binding #f #f 'enter) meta-command-on-enter)
-    (hashtable-set! bindings (make-binding #t #f #\q) zk-exit)
-    (hashtable-set! bindings (make-binding #t #f #\g) meta-command-clear)
+    (hashtable-set! bindings (key 'enter) meta-command-on-enter)
+    (hashtable-set! bindings (ctrl (key #\q)) zk-exit)
+    (hashtable-set! bindings (ctrl (key #\g)) meta-command-clear)
     (make-mode "meta-command" bindings)))
 
 (define (meta-command-insert model key)
@@ -246,7 +244,7 @@
 (define (zk-meta-command model key)
   (model-mini-buffer! model (meta-command key)))
 
-(hashtable-set! scheme-bindings (make-binding #t #f #\x) zk-meta-command)
+(hashtable-set! scheme-bindings (ctrl (key #\x)) zk-meta-command)
 
 
 (define scheme-mode (make-mode "scheme" scheme-bindings))

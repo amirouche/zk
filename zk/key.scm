@@ -1,5 +1,10 @@
 (library (zk key)
-  (export make-key)
+  (export
+   make-key
+   key
+   ctrl
+   alt
+   )
   (import
    (chezscheme)
    (matchable)
@@ -123,4 +128,22 @@
         ;; clash with TB-KEY-BACKSPACE2
         ;; (TB-KEY-CTRL-8 (%make-key #t alt #\8))
         (else '()))))
-    )
+
+  (define (make-binding ctrl alt symbol)
+    (cons (list ctrl alt) symbol))
+
+  (define binding-key cdr)
+  (define binding-ctrl caar)
+  (define binding-alt cadar)
+
+  (define (key symbol-or-char)
+    ;; TODO: deeper validation
+    (if (or (symbol? symbol-or-char) (char? symbol-or-char))
+        (make-binding #f #f symbol-or-char)
+        (error 'zk "not a valid key" symbol-or-char)))
+
+  (define (ctrl binding)
+    (make-binding #t (binding-alt binding) (binding-key binding)))
+
+  (define (alt binding)
+    (make-binding (binding-ctrl binding) #t (binding-key binding))))
