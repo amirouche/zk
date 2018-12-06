@@ -193,7 +193,6 @@
 
 ;; meta command
 
-
 (define key-char (compose char->integer cdr))
 
 (define (meta-command-clear model key)
