@@ -128,12 +128,54 @@
 (define model-current-insert
   (compose frame-buffer-insert frame-buffer model-current-focus))
 
+(define (chord-mini-buffer-clear! model key)
+  (model-mini-buffer! model #f))
+
+(define (key->string key)
+  (if (symbol? key)
+      (symbol->string (binding-key binding))
+      (list->string (list key))))
+
+(define (binding->string binding)
+  (string-append (if (binding-ctrl binding) "C-" "")
+                 (if (binding-alt binding) "M-" "")
+                 (key->string (binding-key binding))))
+
+(define (bindings->string bindings)
+  (apply string-append (map binding->string bindings)))
+
+(define (chord-mini-buffer-render model frame)
+  (let ((mini-buffer (model-mini-buffer model)))
+    (let ((frame-buffer (frame-buffer mini-buffer)))
+      (let ((bindings (frame-buffer-data frame-buffer)))
+        (print 0 (- (model-height model) 1) (bindings->string bindings))))))
+    ;; (let ((position (frame-cursor-position mini-buffer)))
+    ;;   (tb-set-cursor (position-x position) (- (model-height model) 1)))))
+
+(define (chord-mini-buffer-mode bindings)
+  (hashtable-set! bindings (ctrl (key #\q)) zk-exit)
+  (hashtable-set! bindings (ctrl (key #\g)) chord-mini-buffer-clear!)
+  (make-mode "chord-mini-buffer" bindings))
+
+(define (chord-mini-buffer key bindings)
+  (let ((frame-buffer (make-frame-buffer #f
+                                         (list key)
+                                         chord-mini-buffer-render
+                                         (chord-mini-buffer-mode bindings)
+                                         chord-mini-buffer-clear!)))
+    (make-frame frame-buffer)))
+
+(define (chord-mini-buffer! model key bindings)
+  (model-mini-buffer! model (chord-mini-buffer key bindings)))
+
 (define (dispatch model)
   (let ((bindings (model-current-bindings model))
         (insert (model-current-insert model)))
     (let ((key (dg (make-key (tb-poll-event)))))
-      (let ((callback (hashtable-ref bindings key insert)))
-        (callback model key)))))
+      (match (hashtable-ref bindings key #f)
+        ((? procedure? callback) (callback model key))
+        ((? hashtable? bindings) (chord-mini-buffer! model key bindings))
+        (_ (insert model key))))))
 
 ;; layout
 
@@ -244,7 +286,25 @@
 (define (zk-meta-command model key)
   (model-mini-buffer! model (meta-command key)))
 
-(hashtable-set! scheme-bindings (ctrl (key #\x)) zk-meta-command)
+(define (bind-key! bindings proc key . keys)
+  (let loop ((key key)
+             (keys keys)
+             (bindings bindings))
+    (if (null? keys)
+        (hashtable-set! bindings key proc)
+        (let ((sub (hashtable-ref bindings key #f)))
+          (match sub
+            ((? hashtable? sub)
+             (loop (car keys) (cdr keys) sub))
+            ((? procedure? sub)
+             (error 'zk "key already bound to a procedure" key sub))
+            ((? not sub)
+             (let ((sub (make-bindings)))
+               (hashtable-set! bindings key sub)
+               (loop (car keys) (cdr keys) sub))))))))
+
+(bind-key! scheme-bindings zk-meta-command (ctrl (key #\x)) (key 'enter))
+(bind-key! scheme-bindings zk-exit (ctrl (key #\x)) (ctrl (key #\c)))
 
 
 (define scheme-mode (make-mode "scheme" scheme-bindings))

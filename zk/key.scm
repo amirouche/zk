@@ -4,6 +4,9 @@
    key
    ctrl
    alt
+   binding-key
+   binding-ctrl
+   binding-alt
    )
   (import
    (chezscheme)
